@@ -11,26 +11,26 @@ Image Processing
 ## Explanation [ why above services are used ]
 > [!NOTE]
 > Using these aws managed tools will lead to cost implications, there are some cost calculations done later in the doc. 
-- S3 - to store raw and transformed images.
-- Datasync - Datasync provides high performance low latency to transfer data. Since, we're dealing with large image sizes using awscli to copy image would be slow & unreliable. With datasync large file transfers can be completed with high reliability & extraordinary speeds.
-- Lambda - lambda is used to create datasync tasks and batch task which is then added to the queue.
-- EventBridge - When an object is added to origin s3 bucket, eventbridge rule triggers the lambda.
-- EFS - EFS provides us with high IOPS, also it has the flexibility to expand as the storage grows. Since we're dealing with large images, efs for storage makes more sense compared to standard storage.
-- Batch - batch is used to execute transformation tasks. Batch queue is used to assign tasks. Then compute environment and job definition are used for execution.
+- `S3` - to store raw and transformed images.
+- `Datasync` - Datasync provides high performance low latency to transfer data. Since, we're dealing with large image sizes using awscli to copy image would be slow & unreliable. With datasync large file transfers can be completed with high reliability & extraordinary speeds.
+- `Lambda` - lambda is used to create datasync tasks and batch task which is then added to the queue.
+- `EventBridge` - When an object is added to origin s3 bucket, eventbridge rule triggers the lambda.
+- `EFS` - EFS provides us with high IOPS, also it has the flexibility to expand as the storage grows. Since we're dealing with large images, efs for storage makes more sense compared to standard storage.
+- `Batch` - batch is used to execute transformation tasks. Batch queue is used to assign tasks. Then compute environment and job definition are used for execution.
 
 ## Architecture
 > [!NOTE]
 > Since it is not mentioned where the raw images are, Im assuming that they are on a local system/server. Even if the location of images is different there will be no serious change to the architecture.
 
 ![arch_image_process](https://github.com/nautiyaldeepak/image-processing/assets/30626234/11a5e9ec-9456-4647-a1ef-25c0c6f8a8f5)
-1. User upload the image to origin s3 bucket which the user wants to transform.
+1. User upload the image to origin s3 bucket which the user wants to transform. Since files are large use multipart upload.
 2. Once is object is uploaded the s3 bucket, the eventbridge automatically triggers a lambda function and it also passes the bucket name and object name to the lambda.
 3. Lambda function creates 3 resources, 2 datasync tasks and 1 job for the batch queue.
-    - The 1st datasync task is to transfer data from origin s3 bucket to efs.
-    - The 2nd datasync task is to transfer data from efs to transform s3 bucket. This task is required to save the image in transform bucket once the transformation is complete.
+    - The 1st datasync task is to transfer data from `origin s3 bucket` to efs.
+    - The 2nd datasync task is to transfer data from efs to `transform s3 bucket`. This task is required to save the image in transform bucket once the transformation is complete.
     - The job is created to be added in the queue, so that it can be processed by aws batch. The job is feeded all the relevant information to complete the job.
 4. Once there is a job present in aws batch, the batch creates a new environment using job definition and compute environment to process the job which is present in the queue.
-5. EFS is also created, when the compute environment is created, efs is also mounted to the environment.
+5. EFS is also created, when the compute environment is created, efs is also mounted to the resource.
 6. Once the compute environment is up, it launches the script which executes the following instructions
     - Execute datasync task to copy contents from origin s3 to efs.
     - Run the python docker image which has the algorithm and process the image.
@@ -45,7 +45,7 @@ Image Processing
 - In terraform/variables.tf file add values for all variables.
 ```
 cd terraform
-terrafrom plan
+terraform plan
 terraform apply
 ```
 
@@ -57,7 +57,7 @@ terraform destroy
 ```
 
 ## Gitlab CI file
-- gitlab-ci.yaml file is for building the image & then deploying the image on ECR.
+- `.gitlab-ci.yaml` file is for building the image & then deploying the image on ECR.
 
 ## Sample Cost Calculations
 > [!NOTE]
@@ -74,8 +74,11 @@ Approx cost is $4.4 per image
 
 ## Extra
 - All necessary roles, policies & security groups are created via terraform templates.
+- To reduce overall costs, we're using spot instances. If these image processing is critical, in that case we would use on-demand ec2 instance, which will lead to higher cost. 
 - There are 2 scripts created.
     a. s3_trigger lambda python script
     b. bash script for compute environment
 For both scripts, I've written psuedo code to give general idea what the scripts are suppose to do.
 - You can tinker with the architecture by uploading the file architecture/architecture.excalidraw to [excalidraw](https://excalidraw.com/)
+- The scripts that are written in `scripts/` directory, they are psuedo code, they are not functional but will give you a general idea what they're suppose to do. If you need a functional scripts, please let me know I'll write proper scripts.
+- I tried to design and explain the architecture to the best of my abilities, if something is not clear we can surely have a discussion.
