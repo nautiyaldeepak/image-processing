@@ -82,6 +82,8 @@ Approx cost is $4.4 per image
     - This would help us estimate how much storage is required. Anyways in our case we're using EFS, which can expand on demand. But using efs will lead to higher cost.
 - What is the estimated processing time ?
     - This can help us set timeouts and configure relevant alerts for our jobs. In this case I've made an assumption that it can take upto 4 hours.
+- What is more important cost or performance/reliability ?
+    - There is always a trade off between cost and performance. In this setup I've give more importance that performace, although cost implications are also kept in mind when designing the architecture.
 
 ## Extra
 - All necessary roles, policies & security groups are created via terraform templates.
@@ -95,3 +97,4 @@ For both scripts, I've written psuedo code to give general idea what the scripts
 - The `.gitlab-ci.yml` file is also not tested but will give you a general idea what it is suppose to do.
 - I tried to design and explain the architecture to the best of my abilities, if something is not clear we can surely have a discussion.
 - Terraform templates are functional, you can use the commands mentioned above to deploy/destroy the terraform resources.
+- I've kept the repo public. This was not mentioned in the assignment description.
