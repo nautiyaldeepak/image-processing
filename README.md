@@ -75,6 +75,14 @@ terraform destroy
 - Total Cost = 1.5 + 1.4 + 0.8 + 0.6 + 0.1 (misc cost) = $4.4/image
 Approx cost is $4.4 per image
 
+## Important Question
+- How important is this processing ? 
+    - The reason for asking this question is to figure out if we can can use spotInstance, if the processing is important and the result is required asap, in that case we would have used EC2 on-demand instances. In this case I've enabled spot instance. Using spot instances will lead to cost savings.
+- How big are the images ?
+    - This would help us estimate how much storage is required. Anyways in our case we're using EFS, which can expand on demand. But using efs will lead to higher cost.
+- What is the estimated processing time ?
+    - This can help us set timeouts and configure relevant alerts for our jobs. In this case I've made an assumption that it can take upto 4 hours.
+
 ## Extra
 - All necessary roles, policies & security groups are created via terraform templates.
 - To reduce overall costs, we're using spot instances. If these image processing is critical, in that case we would use on-demand ec2 instance, which will lead to higher cost. 
