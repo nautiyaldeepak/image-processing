@@ -1,0 +1,56 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  IMAGE_NAME: "transformer"
+  # These should in gitlab secret variables.
+  AWS_ACCESS_KEY_ID: "your-access-key-id"
+  AWS_SECRET_ACCESS_KEY: "your-secret-access-key"
+  REGISTRY_URL: "registry-url"
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - docker_cache/
+
+build_image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - cd app/
+    - docker build -t $REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG .
+    - docker save $REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG -o $CI_PROJECT_DIR/docker_cache/$IMAGE_NAME.tar
+  artifacts:
+    expire_in: 1h
+    paths:
+      - docker_cache/
+  only:
+    - main
+
+deploy_to_ecr:
+  stage: deploy
+  image: docker:latest
+  before_script:
+    - apk add --no-cache python3 py3-pip
+    - pip3 install --no-cache-dir awscli
+    - aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+    - aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+    - aws configure set default.region eu-north-1
+    - echo "Logging into ECR registry"
+    - aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin $REGISTRY_URL
+  script:
+    - docker load -i $CI_PROJECT_DIR/docker_cache/$IMAGE_NAME.tar
+    - docker tag $REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $REGISTRY_URL:latest
+    - docker tag $REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG $REGISTRY_URL:CI_COMMIT_REF_SLUG
+    - docker push $REGISTRY_URL:latest
+    - docker push $REGISTRY_URL:$CI_COMMIT_REF_SLUG
+    # Add deployment steps here
+  artifacts:
+    expire_in: 1h
+    paths:
+      - docker_cache/
+  only:
+    - main
