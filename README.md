@@ -21,6 +21,7 @@ Image Processing
 ## Architecture
 > [!NOTE]
 > Since it is not mentioned where the raw images are, Im assuming that they are on a local system/server. Even if the location of images is different there will be no serious change to the architecture.
+
 ![arch_image_process](https://github.com/nautiyaldeepak/image-processing/assets/30626234/11a5e9ec-9456-4647-a1ef-25c0c6f8a8f5)
 1. User upload the image to origin s3 bucket which the user wants to transform.
 2. Once is object is uploaded the s3 bucket, the eventbridge automatically triggers a lambda function and it also passes the bucket name and object name to the lambda.
