@@ -60,8 +60,18 @@ resource "aws_lambda_function" "s3_trigger_lambda" {
   runtime       = "python3.12"
   role          = aws_iam_role.lambda_role.arn
   filename      = data.archive_file.invoke_lambda_zip.output_path
-
   source_code_hash = filebase64sha256(data.archive_file.invoke_lambda_zip.output_path)
+  environment {
+    variables = {
+      ORIGIN_BUCKET_NAME = aws_s3_bucket.origin_bucket.bucket,
+      TRANSFORM_BUCKET_NAME  = aws_s3_bucket.transform_bucket.bucket,
+      DATASYNC_ORIGIN_S3_LOCATION = aws_datasync_location_s3.datasync_s3_origin_location.arn
+      DATASYNC_TRANSFORM_S3_LOCATION = aws_datasync_location_s3.datasync_s3_transform_location.arn
+      DATASYNC_EFS_LOCATION = aws_datasync_location_efs.datasync_efs_location.arn
+      BATCH_JOB_QUEUE_NAME = aws_batch_job_queue.batch_job_queue.arn
+
+    }
+  }
 }
 
 resource "aws_cloudwatch_event_rule" "s3_trigger_cloudwatch_event_rule" {
@@ -210,5 +220,120 @@ resource "aws_datasync_location_efs" "datasync_efs_location" {
   ]
   tags = {
     Environment = "${var.identifier}"
+  }
+}
+
+resource "aws_batch_compute_environment" "batch_environment" {
+  compute_environment_name = "${var.identifier}-compute-environment"
+  type                     = "MANAGED"
+  state                    = "ENABLED"
+  compute_resources {
+    type          = "EC2"
+    instance_role = aws_iam_instance_profile.batch_instance_profile.arn
+    instance_type = ["optimal"]
+    min_vcpus     = 0
+    max_vcpus     = 2
+    subnets       = var.subnet_ids
+    security_group_ids = [aws_security_group.batch_security_group.id] # Replace with your security group ID(s)
+  }
+}
+
+resource "aws_iam_instance_profile" "batch_instance_profile" {
+  name = "${var.identifier}-batch-instance-profile"
+  role = aws_iam_role.batch_instance_role.name
+}
+
+resource "aws_iam_role" "batch_instance_role" {
+  name               = "${var.identifier}-batch-instance-role"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17",
+    Statement = [{
+      Effect    = "Allow",
+      Principal = {
+        Service = "ec2.amazonaws.com"
+      },
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  inline_policy {
+    name   = "${var.identifier}-batch-instance-policy"
+    policy = jsonencode({
+      Version   = "2012-10-17",
+      Statement = [{
+        Effect    = "Allow",
+        Action    = "batch:*",
+        Resource  = "*"
+      }]
+    })
+  }
+}
+
+resource "aws_security_group" "batch_security_group" {
+  name        = "${var.identifier}-batch-security-group"
+  description = "Security group for AWS Batch compute environment"
+  vpc_id      = var.vpc_id
+
+  // Allow outbound traffic to the internet
+  egress {
+    from_port   = 0
+    to_port     = 65535
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_batch_job_definition" "batch_job_definition" {
+  name        = "${var.identifier}-batch-job-definition"
+  type        = "container"
+  parameters = {
+    "param1" = "value1"
+    "param2" = "value2"
+  }
+
+  container_properties = jsonencode({
+    image       = "busybox"
+    vcpus       = 1
+    memory      = 1024
+    command     = ["echo", "hello", "world"]
+    environment = [
+      {name = "ENV_VAR_1", value = "value1"},
+      {name = "ENV_VAR_2", value = "value2"},
+    ]
+    volumes = [
+      {
+        name = "efs-volume"   # Name of the EFS volume
+        efs_volume_configuration = {
+          file_system_id = aws_efs_file_system.efs_file_system.id   # ID of your EFS file system
+        }
+      }
+    ]
+    mount_points = [
+      {
+        source_volume = "efs-volume"     # Name of the volume defined above
+        container_path = "/mnt/efs"       # Container mount path
+        read_only = false
+      }
+    ]
+  })
+
+  retry_strategy {
+    attempts = 1
+  }
+
+  timeout {
+    attempt_duration_seconds = 3600
+  }
+
+  depends_on = [aws_batch_compute_environment.batch_environment]
+}
+
+resource "aws_batch_job_queue" "batch_job_queue" {
+  name          = "${var.identifier}-batch-job-queue"
+  state         = "ENABLED"
+  priority      = 1
+  compute_environment_order {
+    order               = 1
+    compute_environment = aws_batch_compute_environment.batch_environment.arn
   }
 }
