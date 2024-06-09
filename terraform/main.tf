@@ -89,3 +89,41 @@ resource "aws_lambda_permission" "lambda_eventbridge_permissions" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.s3_trigger_cloudwatch_event_rule.arn
 }
+
+resource "aws_efs_file_system" "efs_file_system" {
+  creation_token = "${var.identifier}-efs"
+  tags = {
+    Environment = "${var.identifier}"
+    Name = "${var.identifier}-efs"
+  }
+}
+
+resource "aws_efs_mount_target" "efs_mount_target" {
+  for_each = { for idx, subnet_id in var.subnet_ids : idx => subnet_id }
+  file_system_id  = aws_efs_file_system.efs_file_system.id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs.id]
+}
+
+resource "aws_security_group" "efs" {
+  name   = "allow_efs"
+  vpc_id = var.vpc_id
+
+  ingress {
+    from_port   = 2049
+    to_port     = 2049
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr_block]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Environment = "${var.identifier}"
+  }
+}

@@ -21,3 +21,21 @@ variable "identifier" {
   type        = string
   default     = "testnet"
 }
+
+variable "subnet_ids" {
+  description = "A list of subnet IDs where the EFS mount targets will be created."
+  type        = list(string)
+  default     = ["subnet-0a4633ceb176cfd9d", "subnet-0ef89c8644f17f2ed", "subnet-0c756ca41c97718ea"]  # Add default as an empty list
+}
+
+variable "vpc_id" {
+  description = "The VPC ID where the EFS file system will be created."
+  type        = string
+  default     = "vpc-0ffa5e60cc0208c47"  # Add default as an empty string
+}
+
+variable "vpc_cidr_block" {
+  description = "The CIDR block of the VPC."
+  type        = string
+  default     = "172.31.0.0/16"
+}
