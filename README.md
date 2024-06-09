@@ -45,6 +45,7 @@ Image Processing
 - In terraform/variables.tf file add values for all variables.
 ```
 cd terraform
+terraform init
 terraform plan
 terraform apply
 ```
