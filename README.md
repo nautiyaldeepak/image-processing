@@ -81,4 +81,5 @@ Approx cost is $4.4 per image
 For both scripts, I've written psuedo code to give general idea what the scripts are suppose to do.
 - You can tinker with the architecture by uploading the file architecture/architecture.excalidraw to [excalidraw](https://excalidraw.com/)
 - The scripts that are written in `scripts/` directory, they are psuedo code, they are not functional but will give you a general idea what they're suppose to do. If you need a functional scripts, please let me know I'll write proper scripts.
+- The `.gitlab-ci.yml` file is also not tested but will give you a general idea what it is suppose to do.
 - I tried to design and explain the architecture to the best of my abilities, if something is not clear we can surely have a discussion.
