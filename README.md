@@ -26,17 +26,17 @@ Image Processing
 1. User upload the image to origin s3 bucket which the user wants to transform.
 2. Once is object is uploaded the s3 bucket, the eventbridge automatically triggers a lambda function and it also passes the bucket name and object name to the lambda.
 3. Lambda function creates 3 resources, 2 datasync tasks and 1 job for the batch queue.
-    a. The 1st datasync task is to transfer data from origin s3 bucket to efs.
-    b. The 2nd datasync task is to transfer data from efs to transform s3 bucket. This task is required to save the image in transform bucket once the transformation is complete.
-    c. The job is created to be added in the queue, so that it can be processed by aws batch. The job is feeded all the relevant information to complete the job.
+    - The 1st datasync task is to transfer data from origin s3 bucket to efs.
+    - The 2nd datasync task is to transfer data from efs to transform s3 bucket. This task is required to save the image in transform bucket once the transformation is complete.
+    - The job is created to be added in the queue, so that it can be processed by aws batch. The job is feeded all the relevant information to complete the job.
 4. Once there is a job present in aws batch, the batch creates a new environment using job definition and compute environment to process the job which is present in the queue.
 5. EFS is also created, when the compute environment is created, efs is also mounted to the environment.
 6. Once the compute environment is up, it launches the script which executes the following instructions
-    a. Execute datasync task to copy contents from origin s3 to efs.
-    b. Run the python docker image which has the algorithm and process the image.
-    c. Once the image is processed, the second datasync task is executed which transfers the output image to the transform s3 bucket.
-    d. Once final datasync is compelete, delete both images from efs.
-    e. Terminate the environment
+    - Execute datasync task to copy contents from origin s3 to efs.
+    - Run the python docker image which has the algorithm and process the image.
+    - Once the image is processed, the second datasync task is executed which transfers the output image to the transform s3 bucket.
+    - Once final datasync is compelete, delete both images from efs.
+    - Terminate the environment
 7. The transformed image is now present in transform s3 bucket.
 > [!NOTE]
 > Architecure diagram also includes Continious Integration process which is for building image and then deploying the image on ECR.
