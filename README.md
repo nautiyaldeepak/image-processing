@@ -43,6 +43,8 @@ Image Processing
 
 ## Deploy aws infrastructure
 - In terraform/variables.tf file add values for all variables.
+- Please make sure to add `subnet-ids`, `vpc-id`, `vpc-cidr`
+- The aws user that you're using should have the necessary permissions.
 ```
 cd terraform
 terraform init
@@ -84,3 +86,4 @@ For both scripts, I've written psuedo code to give general idea what the scripts
 - The scripts that are written in `scripts/` directory, they are psuedo code, they are not functional but will give you a general idea what they're suppose to do. If you need a functional scripts, please let me know I'll write proper scripts.
 - The `.gitlab-ci.yml` file is also not tested but will give you a general idea what it is suppose to do.
 - I tried to design and explain the architecture to the best of my abilities, if something is not clear we can surely have a discussion.
+- Terraform templates are functional, you can use the commands mentioned above to deploy/destroy the terraform resources.
