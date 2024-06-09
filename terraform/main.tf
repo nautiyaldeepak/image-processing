@@ -29,8 +29,8 @@ resource "aws_s3_bucket_notification" "origin_bucket_notification" {
 
 data "archive_file" "invoke_lambda_zip" {
   type        = "zip"
-  source_dir  = "${path.module}/../lambda_functions_scripts/s3_trigger"
-  output_path = "${path.module}/../lambda_functions_scripts/s3_trigger.zip"
+  source_dir  = "${path.module}/../scripts/s3_trigger"
+  output_path = "${path.module}/../scripts/s3_trigger.zip"
 }
 
 resource "aws_iam_role" "lambda_role" {
@@ -228,13 +228,18 @@ resource "aws_batch_compute_environment" "batch_environment" {
   type                     = "MANAGED"
   state                    = "ENABLED"
   compute_resources {
-    type          = "EC2"
+    type                = "SPOT"
+    allocation_strategy = "BEST_FIT_PROGRESSIVE"
+    bid_percentage      = 100
     instance_role = aws_iam_instance_profile.batch_instance_profile.arn
     instance_type = ["optimal"]
     min_vcpus     = 0
     max_vcpus     = 2
     subnets       = var.subnet_ids
     security_group_ids = [aws_security_group.batch_security_group.id] # Replace with your security group ID(s)
+  }
+  tags = {
+    Environment = "${var.identifier}"
   }
 }
 
@@ -267,6 +272,9 @@ resource "aws_iam_role" "batch_instance_role" {
       }]
     })
   }
+  tags = {
+    Environment = "${var.identifier}"
+  }
 }
 
 resource "aws_security_group" "batch_security_group" {
@@ -280,6 +288,9 @@ resource "aws_security_group" "batch_security_group" {
     to_port     = 65535
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Environment = "${var.identifier}"
   }
 }
 
@@ -324,6 +335,9 @@ resource "aws_batch_job_definition" "batch_job_definition" {
   timeout {
     attempt_duration_seconds = 3600
   }
+  tags = {
+    Environment = "${var.identifier}"
+  }
 
   depends_on = [aws_batch_compute_environment.batch_environment]
 }
@@ -335,5 +349,8 @@ resource "aws_batch_job_queue" "batch_job_queue" {
   compute_environment_order {
     order               = 1
     compute_environment = aws_batch_compute_environment.batch_environment.arn
+  }
+  tags = {
+    Environment = "${var.identifier}"
   }
 }
